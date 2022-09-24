@@ -7,15 +7,41 @@ use PHPUnit\Framework\TestCase;
 
 class PhpMultipleTest extends TestCase
 {
-    public function testFirst(): void
-    {
-        $phpMultiple = new PHPMultiple();
+    protected PhpMultiple $phpMultiple;
+    protected Shmop $shmId;
 
-        $this->assertTrue($phpMultiple->returnTrue());
+    protected $faker;
+
+    public function setUp(): void
+    {
+        $this->phpMultiple = new PhpMultiple(100);
     }
 
-    public function testFail(): void
+    public function tearDown(): void
     {
-        $this->Fail('This test is fail.');
+        $this->phpMultiple->closeSharedMemotyBlocks();
+    }
+
+    public function testIsSetSharedMemoryBlocks()
+    {
+        $this->assertNotFalse($this->phpMultiple->setSharedMemoryBlocks());
+    }
+
+    public function testIsWriteToSharedMemoryBlocks()
+    {
+        $randStr = $this->generateRandomString();
+        $this->assertSame(strlen($randStr), $this->phpMultiple->writeToSharedMemoryBlocks($randStr, 0));
+    }
+
+    /**
+     * Generate a random string.
+     *
+     * @return string
+     */
+    private function generateRandomString()
+    {
+        $str = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+        return substr(str_shuffle(str_repeat($str, 10)), 0, 8);
     }
 }
