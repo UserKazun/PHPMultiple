@@ -10,8 +10,6 @@ class PhpMultipleTest extends TestCase
     protected PhpMultiple $phpMultiple;
     protected Shmop $shmId;
 
-    protected $faker;
-
     public function setUp(): void
     {
         $this->phpMultiple = new PhpMultiple(1024);
