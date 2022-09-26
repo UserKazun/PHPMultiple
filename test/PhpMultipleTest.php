@@ -10,11 +10,9 @@ class PhpMultipleTest extends TestCase
     protected PhpMultiple $phpMultiple;
     protected Shmop $shmId;
 
-    protected $faker;
-
     public function setUp(): void
     {
-        $this->phpMultiple = new PhpMultiple(100);
+        $this->phpMultiple = new PhpMultiple(1024);
     }
 
     public function tearDown(): void
@@ -42,6 +40,6 @@ class PhpMultipleTest extends TestCase
     {
         $str = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
-        return substr(str_shuffle(str_repeat($str, 10)), 0, 8);
+        return substr(str_shuffle(str_repeat($str, 10)), 0, 1024);
     }
 }
