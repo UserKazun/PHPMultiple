@@ -17,7 +17,7 @@ class PhpMultipleTest extends TestCase
 
     public function tearDown(): void
     {
-        $this->phpMultiple->closeSharedMemotyBlocks();
+        $this->phpMultiple->deleteSharedMemotyBlocks();
     }
 
     /**
