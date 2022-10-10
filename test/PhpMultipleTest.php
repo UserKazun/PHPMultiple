@@ -17,7 +17,35 @@ class PhpMultipleTest extends TestCase
 
     public function tearDown(): void
     {
-        $this->phpMultiple->closeSharedMemotyBlocks();
+        $this->phpMultiple->deleteSharedMemotyBlocks();
+    }
+
+    /**
+     * @dataProvider targetDataProvider
+     */
+    public function testCopyDataToBeProcessedByTheChildProcess(array $data, int $i, int $singleProcJobNum, int $dataCount, array $expected)
+    {
+        $holdChildProcData = $this->phpMultiple->copyDataToProcessedByChildProc($data, $i, $singleProcJobNum, $dataCount);
+
+        $this->assertSame($expected, $holdChildProcData);
+    }
+
+    /**
+     * array $data, int $i, int $singleProcJobNum, int $dataCount, array $expected)
+     */
+    public function targetDataProvider()
+    {
+        return [
+            'simple array' => [[1, 2, 3, 4, 5, 6], 0, 3, 6, [1, 2, 3]],
+            'multi array' => [[[1],[2], [3], [4], [5], [6]], 0, 3, 6, [[1], [2], [3]]],
+            'array with key value' => [
+                ['key' => 'value', 'key2' => 'value2', 'key3' => 'value3', 'key4' => 'value4'],
+                0,
+                2,
+                4,
+                ['key' => 'value', 'key2' => 'value2']
+            ]
+        ];
     }
 
     public function testIsSetSharedMemoryBlocks()
