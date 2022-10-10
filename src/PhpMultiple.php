@@ -54,6 +54,23 @@ class PhpMultiple
     }
 
     /**
+     * Fork and run Closure in a child process
+     *
+     * @param Closure $executor
+     * @return array
+     */
+    public function runChildProc(Closure $executor)
+    {
+        $pid = pcntl_fork();
+        $result = [];
+        if ($pid !== self::IS_CHILD_PROC) {
+             $result = $executor;
+        }
+
+        return $result;
+    }
+
+    /**
      * Copy data to be processed by the child process.
      *
      * @param array $data
