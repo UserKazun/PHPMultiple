@@ -10,6 +10,8 @@ use Shmop;
 
 class PhpMultiple
 {
+    const IS_CHILD_PROC = 0;
+
     protected int $numberOfChildProc;
     private Shmop $shmId;
 
@@ -29,7 +31,7 @@ class PhpMultiple
     /**
      * execute
      *
-     * @param array|Object $targetData
+     * @param array $data
      * @param Closure $executor
      * @return void
      */
@@ -37,40 +39,16 @@ class PhpMultiple
     {
         // Calculate the number of cases to be processed by a single child process.
         $dataCount = count($data);
-        $singleProcJobNum = intval(ceil($dataCount / $this->numberOfChildProc));
+        //$singleProcJobNum = intval(ceil($dataCount / $this->numberOfChildProc));
 
         // run child process
-        $runChildProcCount = 0;
-        for ($i = 0; $i <= $this->numberOfChildProc; $i++) {
-            pcntl_fork();
-            $runChildProcCount++;
-
-            $holdChildProcData = $this->copyDataToProcessedByChildProc($data, $i, $singleProcJobNum, $dataCount);
-
-            $childProcResult = $executor($holdChildProcData);
-
-            $this->writeToSharedMemoryBlocks(implode(',', $childProcResult), 0);
-
-            break;
+        $pid = pcntl_fork();
+        $result = [];
+        if ($pid !== self::IS_CHILD_PROC) {
+             $result = $executor;
         }
 
-        $result = null;
-        while ($runChildProcCount > 0) {
-            $stat = null;
-            $pid = pcntl_wait($stat);
-
-            $func = function(&$result, $data) {
-                if (!is_array($result)) {
-                    $result = array();
-                }
-                $result = array_merge($result, $data);
-            };
-
-            $data = $this->readDataFromsharedMemoryBlock($this->shmId, 0, 10);
-            $func($result, $data);
-
-            $runChildProcCount--;
-        }
+        echo 'child proc waiting ... ' . pcntl_wait($pid) . PHP_EOL;
 
         return $result;
     }
