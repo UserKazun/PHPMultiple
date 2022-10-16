@@ -13,7 +13,6 @@ class PhpMultiple
     const IS_CHILD_PROC = 0;
 
     protected int $numberOfChildProc;
-    private Shmop $shmId;
 
     public function __construct()
     {
@@ -38,9 +37,9 @@ class PhpMultiple
         $dataCount = count($data);
         $singleProcJobNum = intval(ceil($dataCount / 2));
 
-        $this->runChildProc($data, $dataCount, $singleProcJobNum, $executor);
+        $this->runChildProc($shmop, $data, $dataCount, $singleProcJobNum, $executor);
 
-        $this->readDataFromsharedMemoryBlock($this->shmId, 0, 100);
+        $this->readDataFromsharedMemoryBlock($shmop, 0, 1024);
     }
 
     /**
@@ -49,7 +48,7 @@ class PhpMultiple
      * @param Closure $executor
      * @return void
      */
-    public function runChildProc(array $data, int $dataCount, int $singleProcJobNum, Closure $executor): void
+    public function runChildProc(Shmop $shmop, array $data, int $dataCount, int $singleProcJobNum, Closure $executor): void
     {
         $pid = pcntl_fork();
         $result = [];
@@ -57,7 +56,7 @@ class PhpMultiple
              $result = $executor($this->copyDataToProcessedByChildProc($data, 1, $singleProcJobNum, $dataCount));
         }
 
-        $this->writeToSharedMemoryBlocks($result, 0);
+        $this->writeToSharedMemoryBlocks($shmop, $result, 0);
 
         exit;
     }
@@ -102,9 +101,9 @@ class PhpMultiple
      * @param int $writeOffset
      * @return int
      */
-    public function writeToSharedMemoryBlocks(string $writeTarget, int $writeOffset): int
+    public function writeToSharedMemoryBlocks(Shmop $shmop, string $writeTarget, int $writeOffset): int
     {
-        return shmop_write($this->shmId, $writeTarget, $writeOffset);
+        return shmop_write($shmop, $writeTarget, $writeOffset);
     }
 
     /**
@@ -125,8 +124,8 @@ class PhpMultiple
      *
      * @return void
      */
-    public function deleteSharedMemotyBlocks(): bool
+    public function deleteSharedMemotyBlocks(Shmop $shmop): bool
     {
-        return shmop_delete($this->shmId);
+        return shmop_delete($shmop);
     }
 }

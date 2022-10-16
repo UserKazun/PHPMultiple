@@ -8,18 +8,20 @@ use PHPUnit\Framework\TestCase;
 class PhpMultipleTest extends TestCase
 {
     protected PhpMultiple $phpMultiple;
-    protected Shmop $shmId;
+    protected Shmop $shmop;
 
     public function setUp(): void
     {
         $this->phpMultiple = new PhpMultiple(1024);
         $shmKey = ftok(__FILE__, 't');
-        $this->shmId = shmop_open($shmKey, "c", 0644, 100);
+        $this->shmop = shmop_open($shmKey, "c", 0644, 1024);
     }
 
     public function tearDown(): void
     {
-        $this->phpMultiple->deleteSharedMemotyBlocks();
+        if ($this->shmop) {
+            $this->phpMultiple->deleteSharedMemotyBlocks($this->shmop);
+        }
     }
 
     /**
@@ -58,15 +60,15 @@ class PhpMultipleTest extends TestCase
     public function testIsWriteToSharedMemoryBlocks()
     {
         $randStr = $this->generateRandomString();
-        $this->assertSame(strlen($randStr), $this->phpMultiple->writeToSharedMemoryBlocks($randStr, 0));
+        $this->assertSame(strlen($randStr), $this->phpMultiple->writeToSharedMemoryBlocks($this->shmop, $randStr, 0));
     }
 
     public function testIsReadSharedMemoryBlock()
     {
         $randStr = $this->generateRandomString();
-        $this->phpMultiple->writeToSharedMemoryBlocks($randStr, 0);
+        $size = $this->phpMultiple->writeToSharedMemoryBlocks($this->shmop, $randStr, 0);
 
-        $this->assertSame(strlen($randStr), $this->phpMultiple->readDataFromSharedMemoryBlock($this->shmId, 0, 100));
+        $this->assertSame($randStr, $this->phpMultiple->readDataFromSharedMemoryBlock($this->shmop, 0, $size));
     }
 
     /**
