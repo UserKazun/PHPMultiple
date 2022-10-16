@@ -52,11 +52,6 @@ class PhpMultipleTest extends TestCase
         ];
     }
 
-    // public function testIsSetSharedMemoryBlocks()
-    // {
-    //     $this->assertNotFalse($this->phpMultiple->setSharedMemoryBlocks());
-    // }
-
     public function testIsWriteToSharedMemoryBlocks()
     {
         $randStr = $this->generateRandomString();

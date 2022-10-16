@@ -45,6 +45,10 @@ class PhpMultiple
     /**
      * Fork and run Closure in a child process
      *
+     * @param Shmop $shmop
+     * @param array $data
+     * @param int $dataCount
+     * @param int $singleProcJobNum
      * @param Closure $executor
      * @return void
      */
@@ -84,22 +88,12 @@ class PhpMultiple
     }
 
     /**
-     * Allocation of shared memory blocks.
+     * Write to share memory block.
      *
-     * @return void
-     */
-    public function setSharedMemoryBlocks(): void
-    {
-        $shmKey = ftok(__FILE__, 't');
-        $this->shmId = shmop_open($shmKey, "c", 0644, 100);
-    }
-
-    /**
-     * Undocumented function
-     *
+     * @param Shmop $shmop
      * @param string $writeTarget
-     * @param int $writeOffset
-     * @return int
+     * @param integer $writeOffset
+     * @return integer
      */
     public function writeToSharedMemoryBlocks(Shmop $shmop, string $writeTarget, int $writeOffset): int
     {
@@ -122,7 +116,8 @@ class PhpMultiple
     /**
      * Delete shared memory block.
      *
-     * @return void
+     * @param Shmop $shmop
+     * @return boolean
      */
     public function deleteSharedMemotyBlocks(Shmop $shmop): bool
     {
