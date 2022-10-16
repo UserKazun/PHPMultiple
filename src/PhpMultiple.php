@@ -13,7 +13,6 @@ class PhpMultiple
     const IS_CHILD_PROC = 0;
 
     protected int $numberOfChildProc;
-    private Shmop $shmId;
 
     public function __construct()
     {
@@ -38,18 +37,22 @@ class PhpMultiple
         $dataCount = count($data);
         $singleProcJobNum = intval(ceil($dataCount / 2));
 
-        $this->runChildProc($data, $dataCount, $singleProcJobNum, $executor);
+        $this->runChildProc($shmop, $data, $dataCount, $singleProcJobNum, $executor);
 
-        $this->readDataFromsharedMemoryBlock($this->shmId, 0, 100);
+        $this->readDataFromsharedMemoryBlock($shmop, 0, 1024);
     }
 
     /**
      * Fork and run Closure in a child process
      *
+     * @param Shmop $shmop
+     * @param array $data
+     * @param int $dataCount
+     * @param int $singleProcJobNum
      * @param Closure $executor
      * @return void
      */
-    public function runChildProc(array $data, int $dataCount, int $singleProcJobNum, Closure $executor): void
+    public function runChildProc(Shmop $shmop, array $data, int $dataCount, int $singleProcJobNum, Closure $executor): void
     {
         $pid = pcntl_fork();
         $result = [];
@@ -57,7 +60,7 @@ class PhpMultiple
              $result = $executor($this->copyDataToProcessedByChildProc($data, 1, $singleProcJobNum, $dataCount));
         }
 
-        $this->writeToSharedMemoryBlocks($result, 0);
+        $this->writeToSharedMemoryBlocks($shmop, $result, 0);
 
         exit;
     }
@@ -85,26 +88,16 @@ class PhpMultiple
     }
 
     /**
-     * Allocation of shared memory blocks.
+     * Write to share memory block.
      *
-     * @return void
-     */
-    public function setSharedMemoryBlocks(): void
-    {
-        $shmKey = ftok(__FILE__, 't');
-        $this->shmId = shmop_open($shmKey, "c", 0644, 100);
-    }
-
-    /**
-     * Undocumented function
-     *
+     * @param Shmop $shmop
      * @param string $writeTarget
-     * @param int $writeOffset
-     * @return int
+     * @param integer $writeOffset
+     * @return integer
      */
-    public function writeToSharedMemoryBlocks(string $writeTarget, int $writeOffset): int
+    public function writeToSharedMemoryBlocks(Shmop $shmop, string $writeTarget, int $writeOffset): int
     {
-        return shmop_write($this->shmId, $writeTarget, $writeOffset);
+        return shmop_write($shmop, $writeTarget, $writeOffset);
     }
 
     /**
@@ -123,10 +116,11 @@ class PhpMultiple
     /**
      * Delete shared memory block.
      *
-     * @return void
+     * @param Shmop $shmop
+     * @return boolean
      */
-    public function deleteSharedMemotyBlocks(): bool
+    public function deleteSharedMemotyBlocks(Shmop $shmop): bool
     {
-        return shmop_delete($this->shmId);
+        return shmop_delete($shmop);
     }
 }
