@@ -15,17 +15,11 @@ class PhpMultiple
     protected int $numberOfChildProc;
     private Shmop $shmId;
 
-    /**
-     * @param int $sharedMemorySize
-     */
-    public function __construct(int $sharedMemorySize)
+    public function __construct()
     {
         if (!function_exists('pcntl_fork')) {
             throw new RuntimeException('This SAPI does not support pcntl functions.');
         }
-
-        $shmKey = ftok(__FILE__, 't');
-        $this->shmId = shmop_open($shmKey, "c", 0644, $sharedMemorySize);
     }
 
     /**
@@ -37,20 +31,35 @@ class PhpMultiple
      */
     public function run(array $data, Closure $executor)
     {
+        $shmKey = ftok(__FILE__, 't');
+        $shmop = shmop_open($shmKey, "c", 0644, 1024);
+
         // Calculate the number of cases to be processed by a single child process.
         $dataCount = count($data);
-        //$singleProcJobNum = intval(ceil($dataCount / $this->numberOfChildProc));
+        $singleProcJobNum = intval(ceil($dataCount / 2));
 
-        // run child process
+        $this->runChildProc($data, $dataCount, $singleProcJobNum, $executor);
+
+        $this->readDataFromsharedMemoryBlock($this->shmId, 0, 100);
+    }
+
+    /**
+     * Fork and run Closure in a child process
+     *
+     * @param Closure $executor
+     * @return void
+     */
+    public function runChildProc(array $data, int $dataCount, int $singleProcJobNum, Closure $executor): void
+    {
         $pid = pcntl_fork();
         $result = [];
         if ($pid !== self::IS_CHILD_PROC) {
-             $result = $executor;
+             $result = $executor($this->copyDataToProcessedByChildProc($data, 1, $singleProcJobNum, $dataCount));
         }
 
-        echo 'child proc waiting ... ' . pcntl_wait($pid) . PHP_EOL;
+        $this->writeToSharedMemoryBlocks($result, 0);
 
-        return $result;
+        exit;
     }
 
     /**
@@ -62,7 +71,7 @@ class PhpMultiple
      * @param int $dataCount
      * @return array
      */
-    public function copyDataToProcessedByChildProc(array $data, int $i, int $singleProcJobNum, int $dataCount)
+    public function copyDataToProcessedByChildProc(array $data, int $i, int $singleProcJobNum, int $dataCount): array
     {
         $limit = 0;
         $offset = $i * $singleProcJobNum;
@@ -93,20 +102,20 @@ class PhpMultiple
      * @param int $writeOffset
      * @return int
      */
-    public function writeToSharedMemoryBlocks(string $writeTarget, int $writeOffset)
+    public function writeToSharedMemoryBlocks(string $writeTarget, int $writeOffset): int
     {
         return shmop_write($this->shmId, $writeTarget, $writeOffset);
     }
 
     /**
-     * 共有メモリブロック内のデータを読み取る
+     * Read data in shared memory block.
      *
      * @param Shmop $shmop
      * @param int $offset
      * @param int $size
      * @return string
      */
-    public function readDataFromsharedMemoryBlock(Shmop $shmop, int $offset, int $size)
+    public function readDataFromSharedMemoryBlock(Shmop $shmop, int $offset, int $size): string
     {
         return shmop_read($shmop, $offset, $size);
     }
@@ -116,7 +125,7 @@ class PhpMultiple
      *
      * @return void
      */
-    public function deleteSharedMemotyBlocks()
+    public function deleteSharedMemotyBlocks(): bool
     {
         return shmop_delete($this->shmId);
     }
