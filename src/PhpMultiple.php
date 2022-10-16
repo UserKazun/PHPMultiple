@@ -39,18 +39,9 @@ class PhpMultiple
     {
         // Calculate the number of cases to be processed by a single child process.
         $dataCount = count($data);
-        //$singleProcJobNum = intval(ceil($dataCount / $this->numberOfChildProc));
+        $singleProcJobNum = intval(ceil($dataCount / 1));
 
-        // run child process
-        $pid = pcntl_fork();
-        $result = [];
-        if ($pid !== self::IS_CHILD_PROC) {
-             $result = $executor;
-        }
-
-        echo 'child proc waiting ... ' . pcntl_wait($pid) . PHP_EOL;
-
-        return $result;
+        return $this->runChildProc($data, $dataCount, $executor);
     }
 
     /**
@@ -59,12 +50,12 @@ class PhpMultiple
      * @param Closure $executor
      * @return array
      */
-    public function runChildProc(Closure $executor)
+    public function runChildProc(array $data, int $dataCount, Closure $executor)
     {
         $pid = pcntl_fork();
         $result = [];
         if ($pid !== self::IS_CHILD_PROC) {
-             $result = $executor;
+             $result = $executor($this->copyDataToProcessedByChildProc($data, 0, 1, $dataCount));
         }
 
         return $result;
@@ -116,7 +107,7 @@ class PhpMultiple
     }
 
     /**
-     * 共有メモリブロック内のデータを読み取る
+     * Read data in shared memory block.
      *
      * @param Shmop $shmop
      * @param int $offset
